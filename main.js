@@ -31,14 +31,14 @@ function isTitleDuplicate(title, ignoreIndex = null) {
 
 // Hàm mở form
 function openForm() {
-    addTaskModal.className = "modal-overlay show";
+    addTaskModal.classList.toggle("show");
     setTimeout(() => {
         taskTitle.focus();
     }, 100);
 }
 
 // Khi nhấn nút add  để mở form
-addBtn.onclick = openForm;
+addBtn.addEventListener("click", openForm);
 
 // Hàm đóng form
 function closeForm() {
@@ -75,8 +75,8 @@ function closeForm() {
 }
 
 // Khi ấn nút đóng form
-cancelBtn.onclick = closeForm;
-modalCloseBtn.onclick = closeForm;
+cancelBtn.addEventListener("click", closeForm);
+modalCloseBtn.addEventListener("click", closeForm);
 
 // Khi submit form add/edit
 todoAppForm.onsubmit = function (event) {
@@ -97,10 +97,22 @@ todoAppForm.onsubmit = function (event) {
         formData.isCompleted = originalTask.isCompleted;
 
         todoTasks[editIndex] = formData;
+        toast({
+            title: "Thành công!",
+            message: "Đã cập nhật công việc.",
+            type: "success",
+            duration: 3000,
+        });
     } else {
         // Nếu là chế độ add
         formData.isCompleted = false;
         todoTasks.unshift(formData);
+        toast({
+            title: "Thành công!",
+            message: "Đã thêm một công việc mới.",
+            type: "success",
+            duration: 3000,
+        });
     }
     saveTasks();
     closeForm();
@@ -159,6 +171,12 @@ tasksList.onclick = function (event) {
             // Lưu và hiển thị lại
             saveTasks();
             displayTasks();
+            toast({
+                title: "Đã xóa!",
+                message: `Đã xóa thành công công việc "${task.title}".`,
+                type: "success",
+                duration: 3000,
+            });
         }
     }
 
@@ -174,6 +192,7 @@ tasksList.onclick = function (event) {
         displayTasks();
     }
 };
+
 // Hàm lưu danh sách task vào localstorage
 function saveTasks() {
     localStorage.setItem("todoTasks", JSON.stringify(todoTasks));
@@ -195,11 +214,11 @@ function renderTasks(tasksToRender) {
         .map((task, index) => {
             const originalIndex = todoTasks.findIndex((t) => t === task);
 
-            return `<li class="task-card ${task.cardColor} ${
+            return `<li class="task-card ${escapeHTML(task.cardColor)} ${
                 task.isCompleted ? "completed" : ""
             }">
         <div class="task-header">
-            <h3 class="task-title">${task.title}</h3>
+            <h3 class="task-title">${escapeHTML(task.title)}</h3>
             <button class="task-menu">
                 <i class="fa-solid fa-ellipsis fa-icon"></i>
                 <div class="dropdown-menu">
@@ -223,9 +242,11 @@ function renderTasks(tasksToRender) {
             </button>
         </div>
         <p class="task-description">
-            ${task.description}
+            ${escapeHTML(task.description)}
         </p>
-        <div class="task-time">${task.startTime} - ${task.endTime}</div>
+        <div class="task-time">${escapeHTML(task.startTime)} - ${escapeHTML(
+                task.endTime
+            )}</div>
     </li>`;
         })
         .join("");
@@ -285,3 +306,54 @@ tabsContainer.onclick = function (event) {
 };
 
 displayTasks();
+
+function escapeHTML(html) {
+    const div = document.createElement("div");
+    div.textContent = html;
+    return div.innerHTML;
+}
+
+// Hàm hiển thị thông báo
+function toast({ title = "", message = "", type = "info", duration = 3000 }) {
+    const main = document.getElementById("toast");
+    if (main) {
+        const toast = document.createElement("div");
+
+        const autoRemoveId = setTimeout(function () {
+            main.removeChild(toast);
+        }, duration + 1000);
+
+        toast.onclick = function (e) {
+            if (e.target.closest(".toast__close")) {
+                main.removeChild(toast);
+                clearTimeout(autoRemoveId);
+            }
+        };
+
+        const icons = {
+            success: "fas fa-check-circle",
+            info: "fas fa-info-circle",
+            warning: "fas fa-exclamation-circle",
+            error: "fas fa-exclamation-circle",
+        };
+        const icon = icons[type];
+        const delay = (duration / 1000).toFixed(2);
+
+        toast.classList.add("toast", `toast--${type}`);
+        toast.style.animation = `slideInLeft ease .3s, fadeOut linear 1s ${delay}s forwards`;
+
+        toast.innerHTML = `
+            <div class="toast__icon">
+                <i class="${icon}"></i>
+            </div>
+            <div class="toast__body">
+                <h3 class="toast__title">${title}</h3>
+                <p class="toast__msg">${message}</p>
+            </div>
+            <div class="toast__close">
+                <i class="fas fa-times"></i>
+            </div>
+        `;
+        main.appendChild(toast);
+    }
+}
